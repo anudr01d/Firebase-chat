@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.crazyhitty.chdev.ks.firebasechat.ui.fragments.CreateGroupFragment"
+    tools:showIn="@layout/activity_create_group">
+<RelativeLayout
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:id="@+id/lintop"
+        android:layout_width="match_parent"
+        android:orientation="vertical"
+        android:layout_height="wrap_content">
+        <TextView
+            android:layout_width="wrap_content"
+            android:text="Enter Group Name"
+            android:padding="10dp"
+            android:layout_height="wrap_content" />
+        <EditText
+            android:id="@+id/edTxtGrpName"
+            android:layout_width="match_parent"
+            android:padding="10dp"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/recycler_view_all_user_listing"
+        android:layout_above="@+id/linbtm"
+        android:layout_below="@id/lintop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layoutManager="LinearLayoutManager" />
+
+    <LinearLayout
+        android:id="@id/linbtm"
+        android:layout_alignParentBottom="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <Button
+            android:id="@+id/btnCreateGroup"
+            android:layout_width="match_parent"
+            android:text="Create group"
+            android:clickable="true"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+</RelativeLayout>
+
+</android.support.constraint.ConstraintLayout>
