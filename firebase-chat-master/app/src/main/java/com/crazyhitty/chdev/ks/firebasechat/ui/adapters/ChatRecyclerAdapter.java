@@ -1,17 +1,60 @@
 package com.crazyhitty.chdev.ks.firebasechat.ui.adapters;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Color;
+import android.net.Uri;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.view.ContextThemeWrapper;
 import android.support.v7.widget.RecyclerView;
+import android.text.Spannable;
+import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.crazyhitty.chdev.ks.firebasechat.FirebaseChatMainApp;
 import com.crazyhitty.chdev.ks.firebasechat.R;
 import com.crazyhitty.chdev.ks.firebasechat.models.Chat;
+import com.crazyhitty.chdev.ks.firebasechat.models.Dictionary;
+import com.crazyhitty.chdev.ks.firebasechat.models.Group;
+import com.crazyhitty.chdev.ks.firebasechat.models.Meaning;
+import com.crazyhitty.chdev.ks.firebasechat.models.Tuc;
+import com.crazyhitty.chdev.ks.firebasechat.utils.Constants;
+import com.crazyhitty.chdev.ks.firebasechat.utils.DictionaryDatabase;
+import com.crazyhitty.chdev.ks.firebasechat.utils.DictionaryProvider;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.gson.Gson;
 
+import org.json.JSONObject;
+
+import java.text.BreakIterator;
+import java.text.Format;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Author: Kartik Sharma
@@ -24,14 +67,21 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     private static final int VIEW_TYPE_OTHER = 2;
 
     private List<Chat> mChats;
+    private Activity mActivity;
 
-    public ChatRecyclerAdapter(List<Chat> chats) {
+    public ChatRecyclerAdapter(List<Chat> chats, Activity activity) {
         mChats = chats;
+        mActivity = activity;
     }
 
     public void add(Chat chat) {
         mChats.add(chat);
         notifyItemInserted(mChats.size() - 1);
+    }
+
+    public void clear() {
+        int size = this.mChats.size();
+        this.mChats.clear();
     }
 
     @Override
@@ -51,6 +101,11 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         return viewHolder;
     }
 
+    public Chat getChat(int position) {
+        return mChats.get(position);
+    }
+
+
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
         if (TextUtils.equals(mChats.get(position).senderUid,
@@ -68,6 +123,137 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
         myChatViewHolder.txtChatMessage.setText(chat.message);
         myChatViewHolder.txtUserAlphabet.setText(alphabet);
+        myChatViewHolder.txtSentAt.setText("Sent at " + convertTime(chat.timestamp));
+        linkifyMessage(myChatViewHolder.txtChatMessage);
+    }
+
+    private void linkifyMessage(TextView txtChat) {
+        String definition = txtChat.getText().toString().trim();
+        txtChat.setMovementMethod(LinkMovementMethod.getInstance());
+        txtChat.setText(definition, TextView.BufferType.SPANNABLE);
+        txtChat.setTextColor(Color.WHITE);
+        Spannable spans = (Spannable) txtChat.getText();
+        BreakIterator iterator = BreakIterator.getWordInstance(Locale.US);
+        iterator.setText(definition);
+        int start = iterator.first();
+        for (int end = iterator.next(); end != BreakIterator.DONE; start = end, end = iterator
+                .next()) {
+            String possibleWord = definition.substring(start, end);
+            if (Character.isLetterOrDigit(possibleWord.charAt(0))) {
+                ClickableSpan clickSpan = getClickableSpan(possibleWord);
+                spans.setSpan(clickSpan, start, end,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            }
+        }
+    }
+
+    private ClickableSpan getClickableSpan(final String word) {
+        return new ClickableSpan() {
+            final String mWord;
+            {
+                mWord = word;
+            }
+
+            @Override
+            public void onClick(View widget) {
+                Log.d("tapped on:", mWord);
+                //searchWordInDict(mWord);
+                makeJsonObjReq(mWord);
+                //Toast.makeText(widget.getContext(), mWord, Toast.LENGTH_SHORT).show();
+            }
+
+            public void updateDrawState(TextPaint ds) {
+                ds.setColor(Color.WHITE);
+            }
+        };
+    }
+
+//    private void searchWordInDict(String query){
+//            Cursor cursor =  mActivity.managedQuery(DictionaryProvider.CONTENT_URI, null, null,
+//                    new String[] {query}, null);
+//
+//            if (cursor == null) {
+//                // There are no results
+//                //mTextView.setText(getString(R.string.no_results, new Object[] {query}));
+//            } else {
+//                List<String> mArrayList = new ArrayList<String>();
+//                for(cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+//                    // The Cursor is now set to the right position
+//                    mArrayList.add(cursor.getString(2));
+//                }
+//                displayAlert(query, mArrayList.get(0).toString(),mActivity);
+//
+//            }
+//    }
+
+
+    public void makeJsonObjReq(final String word) {
+        final String url = "https://glosbe.com/gapi/translate?from=eng&dest=eng&format=json&phrase="+word+"&pretty=true";
+
+        JsonObjectRequest getRequest = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>()
+                {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        // display response
+                        Log.d("Response", response.toString());;
+                        displayAlert(word, formatDefinitions(response.toString()), mActivity);
+                    }
+                },
+                new Response.ErrorListener()
+                {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d("Error.Response", error.getMessage());
+                    }
+                }
+        );
+
+        FirebaseChatMainApp.getInstance().addToRequestQueue(getRequest,"sometag");
+    }
+
+
+    private String formatDefinitions(String json) {
+        String meanings = "Definitions : \n \n";
+        Gson gson = new Gson();
+        List<Meaning> mean;
+        Dictionary dict = gson.fromJson(json, Dictionary.class);
+        List<Tuc> tuc = dict.getTuc();
+        if(tuc!=null) {
+            if (tuc.get(0).getMeanings() != null) {
+                mean = tuc.get(0).getMeanings();
+            } else if (tuc.get(1).getMeanings() != null) {
+                mean = tuc.get(1).getMeanings();
+            } else if (tuc.get(2).getMeanings() != null) {
+                mean = tuc.get(2).getMeanings();
+            } else {
+                return "The word does not have a meaning. Please try with other words";
+            }
+            if (mean != null) {
+                int num = 1;
+                for (Meaning m : mean) {
+                    meanings += num + ". " + m.getText() + "\n";
+                    num += 1;
+                }
+            }
+        } else {
+            return "The word does not have a meaning. Please try with other words";
+        }
+        return meanings;
+    }
+
+    private void displayAlert(String title, String message, Activity context){
+        new AlertDialog.Builder(new ContextThemeWrapper(context, R.style.myDialog))
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
     }
 
     private void configureOtherChatViewHolder(OtherChatViewHolder otherChatViewHolder, int position) {
@@ -77,6 +263,8 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
         otherChatViewHolder.txtChatMessage.setText(chat.message);
         otherChatViewHolder.txtUserAlphabet.setText(alphabet);
+        otherChatViewHolder.txtSentAt.setText("Sent at " + convertTime(chat.timestamp));
+        linkifyMessage(otherChatViewHolder.txtChatMessage);
     }
 
     @Override
@@ -85,6 +273,12 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             return mChats.size();
         }
         return 0;
+    }
+
+    public String convertTime(long time){
+        Date date = new Date(time);
+        Format format = new SimpleDateFormat("HH:mm:ss dd-MM-yyyy");
+        return format.format(date);
     }
 
     @Override
@@ -98,22 +292,24 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     private static class MyChatViewHolder extends RecyclerView.ViewHolder {
-        private TextView txtChatMessage, txtUserAlphabet;
+        private TextView txtChatMessage, txtUserAlphabet, txtSentAt;
 
         public MyChatViewHolder(View itemView) {
             super(itemView);
             txtChatMessage = (TextView) itemView.findViewById(R.id.text_view_chat_message);
             txtUserAlphabet = (TextView) itemView.findViewById(R.id.text_view_user_alphabet);
+            txtSentAt = (TextView) itemView.findViewById(R.id.txtSentAt);
         }
     }
 
     private static class OtherChatViewHolder extends RecyclerView.ViewHolder {
-        private TextView txtChatMessage, txtUserAlphabet;
+        private TextView txtChatMessage, txtUserAlphabet, txtSentAt;
 
         public OtherChatViewHolder(View itemView) {
             super(itemView);
             txtChatMessage = (TextView) itemView.findViewById(R.id.text_view_chat_message);
             txtUserAlphabet = (TextView) itemView.findViewById(R.id.text_view_user_alphabet);
+            txtSentAt = (TextView) itemView.findViewById(R.id.txtSentAt);
         }
     }
 }

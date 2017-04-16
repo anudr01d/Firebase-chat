@@ -79,6 +79,9 @@ public class UserListingActivity extends AppCompatActivity implements LogoutCont
             case R.id.action_group:
                 gotoGroupListing();
                 break;
+            case R.id.action_profile:
+                gotoProfile();
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -104,8 +107,11 @@ public class UserListingActivity extends AppCompatActivity implements LogoutCont
     }
 
     private void gotoGroupListing(){
-        //GroupListingActivity.startActivity(this, Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
         GroupListingActivity.startActivity(this);
+    }
+
+    private void gotoProfile(){
+        ProfileActivity.startIntent(this);
     }
 
     @Override

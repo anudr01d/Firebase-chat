@@ -12,22 +12,30 @@ import com.google.firebase.auth.FirebaseUser;
 
 public interface RegisterContract {
     interface View {
-        void onRegistrationSuccess(FirebaseUser firebaseUser);
-
+        void onRegistrationSuccess(FirebaseUser firebaseUser, String username);
         void onRegistrationFailure(String message);
+
+        void onEmailVerificationSuccess(FirebaseUser firebaseUser);
+        void onEmailVerificationFailure(String message);
     }
 
     interface Presenter {
-        void register(Activity activity, String email, String password);
+        void register(Activity activity, String email, String password, String username);
+        void sendVerificationEmail();
     }
 
     interface Interactor {
-        void performFirebaseRegistration(Activity activity, String email, String password);
+        void performFirebaseRegistration(Activity activity, String email, String password, String username);
+        void sendVerificationEmail();
     }
 
     interface OnRegistrationListener {
-        void onSuccess(FirebaseUser firebaseUser);
-
+        void onSuccess(FirebaseUser firebaseUser, String username);
         void onFailure(String message);
+    }
+
+    interface OnEmailVerificationSent {
+        void onEmailSuccess(FirebaseUser firebaseUser);
+        void onEmailFailure(String message);
     }
 }

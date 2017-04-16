@@ -83,9 +83,6 @@ public class UsersFragment extends Fragment implements GetUsersContract.View, It
 
         mSwipeRefreshLayout.setOnRefreshListener(this);
 
-        //TODO: REVISIT THIS
-        //FirebaseMessaging.getInstance().subscribeToTopic("news");
-
     }
 
     @Override
@@ -130,7 +127,11 @@ public class UsersFragment extends Fragment implements GetUsersContract.View, It
                 mSwipeRefreshLayout.setRefreshing(false);
             }
         });
-        Toast.makeText(getActivity(), "Error: " + message, Toast.LENGTH_SHORT).show();
+        try {
+            Toast.makeText(getActivity(), "Error: " + message, Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

@@ -1,9 +1,11 @@
 package com.crazyhitty.chdev.ks.firebasechat.ui.fragments;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -12,6 +14,8 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.crazyhitty.chdev.ks.firebasechat.R;
+import com.crazyhitty.chdev.ks.firebasechat.core.chat.group.delete.DeleteGroupContract;
+import com.crazyhitty.chdev.ks.firebasechat.core.chat.group.delete.DeleteGroupPresenter;
 import com.crazyhitty.chdev.ks.firebasechat.core.chat.group.getall.GetGroupsContract;
 import com.crazyhitty.chdev.ks.firebasechat.core.chat.group.getall.GetGroupsPresenter;
 import com.crazyhitty.chdev.ks.firebasechat.core.users.get.all.GetUsersContract;
@@ -27,9 +31,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
-public class GroupsFragment extends Fragment implements GetGroupsContract.View, ItemClickSupport.OnItemClickListener, SwipeRefreshLayout.OnRefreshListener {
+public class GroupsFragment extends Fragment implements GetGroupsContract.View, ItemClickSupport.OnItemClickListener, SwipeRefreshLayout.OnRefreshListener, ItemClickSupport.OnItemLongClickListener, DeleteGroupContract.View {
     public static final String ARG_TYPE = "type";
     public static final String TYPE_CHATS = "type_chats";
     public static final String TYPE_ALL = "type_all";
@@ -40,6 +47,7 @@ public class GroupsFragment extends Fragment implements GetGroupsContract.View, 
     private GroupListingRecyclerAdapter mGroupListingRecyclerAdapter;
 
     private GetGroupsPresenter mGetGroupsPresenter;
+    private DeleteGroupPresenter mDeleteGroupPresenter;
 
     public static GroupsFragment newInstance(String type) {
         Bundle args = new Bundle();
@@ -70,6 +78,7 @@ public class GroupsFragment extends Fragment implements GetGroupsContract.View, 
 
     private void init() {
         mGetGroupsPresenter = new GetGroupsPresenter(this);
+        mDeleteGroupPresenter = new DeleteGroupPresenter(this);
         getGroups();
         mSwipeRefreshLayout.post(new Runnable() {
             @Override
@@ -79,8 +88,8 @@ public class GroupsFragment extends Fragment implements GetGroupsContract.View, 
         });
 
         ItemClickSupport.addTo(mRecyclerViewAllGroupListing)
-                .setOnItemClickListener(this);
-
+                .setOnItemClickListener(this)
+                .setOnItemLongClickListener(this);
         mSwipeRefreshLayout.setOnRefreshListener(this);
 
 
@@ -107,14 +116,57 @@ public class GroupsFragment extends Fragment implements GetGroupsContract.View, 
     }
 
     @Override
+    public boolean onItemLongClicked(RecyclerView recyclerView, int position, View v) {
+        //get user key and email
+        String key="", email="";
+        Map<String, User> usrMap = mGroupListingRecyclerAdapter.getGroup(position).getUserList();
+        Iterator it = usrMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            User usr = (User)pair.getValue();
+            if(FirebaseAuth.getInstance().getCurrentUser().getEmail().equalsIgnoreCase(usr.email.toString())) {
+                email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
+                key = (String)pair.getKey();
+            }
+        }
+        deleteGroupDialog(mGroupListingRecyclerAdapter.getGroup(position).getGroupID(), key, email);
+        return true;
+    }
+
+    private void deleteGroupDialog(final String groupId, final String key, final String email) {
+        new AlertDialog.Builder(getActivity())
+                .setTitle(R.string.logout)
+                .setMessage(R.string.are_you_sure)
+                .setPositiveButton(R.string.deletegroup, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        mDeleteGroupPresenter.deleteGroup(groupId,key,email);
+
+                    }
+                })
+                .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .show();
+    }
+
+    @Override
     public void onGetAllGroupsSuccess(List<Group> users) {
         //filter groups based on the current user's presence
         List<Group> grps = new ArrayList<>();
         for(Group g : users) {
-            for(User us : g.getUserList()) {
-                if(FirebaseAuth.getInstance().getCurrentUser().getEmail().equalsIgnoreCase(us.email)) {
+            Iterator it = g.getUserList().entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry pair = (Map.Entry)it.next();
+                User usr = (User)pair.getValue();
+                if(FirebaseAuth.getInstance().getCurrentUser().getEmail().equalsIgnoreCase(usr.email.toString())) {
                     grps.add(g);
                 }
+                //it.remove(); // avoids a ConcurrentModificationException
             }
         }
         mSwipeRefreshLayout.post(new Runnable() {
@@ -146,6 +198,16 @@ public class GroupsFragment extends Fragment implements GetGroupsContract.View, 
 
     @Override
     public void onGetChatGroupsFailure(String message) {
+
+    }
+
+    @Override
+    public void onDeleteGroupSuccess(String message) {
+        mGetGroupsPresenter.getAllGroups();
+    }
+
+    @Override
+    public void onDeleteGroupFailure(String message) {
 
     }
 }

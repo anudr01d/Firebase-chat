@@ -10,23 +10,39 @@ import com.google.firebase.auth.FirebaseUser;
  * Project: FirebaseChat
  */
 
-public class RegisterPresenter implements RegisterContract.Presenter, RegisterContract.OnRegistrationListener {
+public class RegisterPresenter implements RegisterContract.Presenter, RegisterContract.OnRegistrationListener, RegisterContract.OnEmailVerificationSent {
     private RegisterContract.View mRegisterView;
     private RegisterInteractor mRegisterInteractor;
 
     public RegisterPresenter(RegisterContract.View registerView) {
         this.mRegisterView = registerView;
-        mRegisterInteractor = new RegisterInteractor(this);
+        mRegisterInteractor = new RegisterInteractor(this, this);
     }
 
     @Override
-    public void register(Activity activity, String email, String password) {
-        mRegisterInteractor.performFirebaseRegistration(activity, email, password);
+    public void register(Activity activity, String email, String password, String username) {
+        mRegisterInteractor.performFirebaseRegistration(activity, email, password, username);
     }
 
     @Override
-    public void onSuccess(FirebaseUser firebaseUser) {
-        mRegisterView.onRegistrationSuccess(firebaseUser);
+    public void onSuccess(FirebaseUser firebaseUser, String username) {
+        mRegisterView.onRegistrationSuccess(firebaseUser, username);
+    }
+
+
+    @Override
+    public void sendVerificationEmail(){
+        mRegisterInteractor.sendVerificationEmail();
+    }
+
+    @Override
+    public void onEmailSuccess(FirebaseUser firebaseUser){
+        mRegisterView.onEmailVerificationSuccess(firebaseUser);
+    }
+
+    @Override
+    public void onEmailFailure(String message){
+        mRegisterView.onEmailVerificationFailure(message);
     }
 
     @Override

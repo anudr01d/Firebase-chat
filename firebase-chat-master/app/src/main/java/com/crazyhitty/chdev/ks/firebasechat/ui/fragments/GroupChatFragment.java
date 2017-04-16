@@ -116,11 +116,15 @@ public class GroupChatFragment extends Fragment implements GroupChatContract.Vie
     }
 
     private void sendMessage() {
+        if(!mETxtMessage.getText().toString().trim().equals("")) {
         String message = mETxtMessage.getText().toString();
         String to = getArguments().getString(Constants.ARG_GROUPID);
         String sender = FirebaseAuth.getInstance().getCurrentUser().getUid();
         GroupChat chat = new GroupChat(to, sender, message, System.currentTimeMillis());
         mChatPresenter.sendMessage(getActivity().getApplicationContext(), chat);
+        } else {
+            Toast.makeText(getActivity(), "Please write a valid message.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -137,7 +141,7 @@ public class GroupChatFragment extends Fragment implements GroupChatContract.Vie
     @Override
     public void onGetMessagesSuccess(GroupChat chat) {
         if (mChatRecyclerAdapter == null) {
-            mChatRecyclerAdapter = new GroupChatRecyclerAdapter(new ArrayList<GroupChat>());
+            mChatRecyclerAdapter = new GroupChatRecyclerAdapter(new ArrayList<GroupChat>(), getActivity());
             mRecyclerViewChat.setAdapter(mChatRecyclerAdapter);
         }
         mChatRecyclerAdapter.add(chat);

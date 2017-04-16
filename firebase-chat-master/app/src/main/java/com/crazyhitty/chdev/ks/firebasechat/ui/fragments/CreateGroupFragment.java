@@ -105,7 +105,11 @@ public class CreateGroupFragment extends Fragment implements View.OnClickListene
         switch (viewId) {
             case R.id.btnCreateGroup:
                 List<User> userList = mUserListingRecyclerAdapter.getmUsers();
-                mCreateGroupPresenter.createGroup(getActivity(), mETxtGrpName.getText().toString(), getSelectedUsers(userList));
+                if(!mETxtGrpName.getText().toString().equals("")) {
+                    mCreateGroupPresenter.createGroup(getActivity(), mETxtGrpName.getText().toString(), getSelectedUsers(userList));
+                } else {
+                    Toast.makeText(getActivity(), "Please enter a valid group name", Toast.LENGTH_SHORT).show();
+                }
                 break;
         }
     }

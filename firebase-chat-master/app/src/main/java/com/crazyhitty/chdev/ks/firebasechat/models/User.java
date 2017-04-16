@@ -14,14 +14,16 @@ public class User {
     public String email;
     public String firebaseToken;
     public boolean isSelected;
+    public String username;
 
     public User() {
     }
 
-    public User(String uid, String email, String firebaseToken) {
+    public User(String uid, String email, String firebaseToken, String username) {
         this.uid = uid;
         this.email = email;
         this.firebaseToken = firebaseToken;
+        this.username = username;
     }
 
     public boolean isSelected() {

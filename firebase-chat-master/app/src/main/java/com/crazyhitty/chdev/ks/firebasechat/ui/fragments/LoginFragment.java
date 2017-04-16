@@ -18,11 +18,6 @@ import com.crazyhitty.chdev.ks.firebasechat.core.login.LoginPresenter;
 import com.crazyhitty.chdev.ks.firebasechat.ui.activities.RegisterActivity;
 import com.crazyhitty.chdev.ks.firebasechat.ui.activities.UserListingActivity;
 
-/**
- * Author: Kartik Sharma
- * Created on: 8/28/2016 , 10:36 AM
- * Project: FirebaseChat
- */
 
 public class LoginFragment extends Fragment implements View.OnClickListener, LoginContract.View {
     private LoginPresenter mLoginPresenter;

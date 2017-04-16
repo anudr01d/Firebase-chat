@@ -13,11 +13,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-/**
- * Author: Kartik Sharma
- * Created on: 9/2/2016 , 10:08 PM
- * Project: FirebaseChat
- */
+
 
 public class AddUserInteractor implements AddUserContract.Interactor {
     private AddUserContract.OnUserDatabaseListener mOnUserDatabaseListener;
@@ -27,11 +23,11 @@ public class AddUserInteractor implements AddUserContract.Interactor {
     }
 
     @Override
-    public void addUserToDatabase(final Context context, FirebaseUser firebaseUser) {
+    public void addUserToDatabase(final Context context, FirebaseUser firebaseUser, String username) {
         DatabaseReference database = FirebaseDatabase.getInstance().getReference();
         User user = new User(firebaseUser.getUid(),
                 firebaseUser.getEmail(),
-                new SharedPrefUtil(context).getString(Constants.ARG_FIREBASE_TOKEN));
+                new SharedPrefUtil(context).getString(Constants.ARG_FIREBASE_TOKEN), username);
         database.child(Constants.ARG_USERS)
                 .child(firebaseUser.getUid())
                 .setValue(user)

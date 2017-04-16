@@ -7,7 +7,7 @@
     <application
         android:name=".FirebaseChatMainApp"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_logo"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
@@ -49,6 +49,10 @@
             </intent-filter>
         </service>
 
+        <activity
+            android:name=".ui.activities.ProfileActivity"
+            android:label="@string/title_activity_profile"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
         <activity
             android:name=".ui.activities.CreateGroupActivity"
             android:label="@string/title_activity_create_group"

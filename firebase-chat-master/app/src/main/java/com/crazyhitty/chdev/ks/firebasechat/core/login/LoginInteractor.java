@@ -14,11 +14,6 @@ import com.google.firebase.database.FirebaseDatabase;
 
 import static android.content.ContentValues.TAG;
 
-/**
- * Author: Kartik Sharma
- * Created on: 8/28/2016 , 11:10 AM
- * Project: FirebaseChat
- */
 
 public class LoginInteractor implements LoginContract.Interactor {
     private LoginContract.OnLoginListener mOnLoginListener;
@@ -35,14 +30,15 @@ public class LoginInteractor implements LoginContract.Interactor {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         Log.d(TAG, "performFirebaseLogin:onComplete:" + task.isSuccessful());
-
-                        // If sign in fails, display a message to the user. If sign in succeeds
-                        // the auth state listener will be notified and logic to handle the
-                        // signed in user can be handled in the listener.
                         if (task.isSuccessful()) {
-                            mOnLoginListener.onSuccess(task.getResult().toString());
-                            updateFirebaseToken(task.getResult().getUser().getUid(),
-                                    new SharedPrefUtil(activity.getApplicationContext()).getString(Constants.ARG_FIREBASE_TOKEN, null));
+                            if(task.getResult().getUser().isEmailVerified()) {
+                                mOnLoginListener.onSuccess(task.getResult().toString());
+                                updateFirebaseToken(task.getResult().getUser().getUid(),
+                                        new SharedPrefUtil(activity.getApplicationContext()).getString(Constants.ARG_FIREBASE_TOKEN, null));
+                            } else {
+                                FirebaseAuth.getInstance().signOut();
+                                mOnLoginListener.onFailure("Email verification is not complete.");
+                            }
                         } else {
                             mOnLoginListener.onFailure(task.getException().getMessage());
                         }
