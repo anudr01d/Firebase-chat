@@ -144,9 +144,20 @@ public class CreateGroupFragment extends Fragment implements View.OnClickListene
 
     @Override
     public void onGetAllUsersSuccess(List<User> users) {
+        users = filterVerifiedUsers(users);
         mUserListingRecyclerAdapter = new SelectableUserListingRecyclerAdapter(users);
         mRecyclerViewAllUserListing.setAdapter(mUserListingRecyclerAdapter);
         mUserListingRecyclerAdapter.notifyDataSetChanged();
+    }
+
+    private List<User> filterVerifiedUsers(List<User> users) {
+        List<User> tempusers = new ArrayList<>();
+        for(User usr : users){
+            if(usr.emailverified){
+                tempusers.add(usr);
+            }
+        }
+        return tempusers;
     }
 
     @Override

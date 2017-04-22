@@ -14,6 +14,7 @@ import com.crazyhitty.chdev.ks.firebasechat.R;
 import com.crazyhitty.chdev.ks.firebasechat.events.GroupPushNotificationEvent;
 import com.crazyhitty.chdev.ks.firebasechat.events.PushNotificationEvent;
 import com.crazyhitty.chdev.ks.firebasechat.ui.activities.ChatActivity;
+import com.crazyhitty.chdev.ks.firebasechat.ui.activities.GroupChatActivity;
 import com.crazyhitty.chdev.ks.firebasechat.utils.Constants;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -41,10 +42,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             if (remoteMessage.getData().size() > 0) {
                 String message = remoteMessage.getData().get("message");
                 String sender = remoteMessage.getData().get("senderid");
+                String groupname = remoteMessage.getData().get("groupname");
                 String groupid = remoteMessage.getFrom().substring(remoteMessage.getFrom().lastIndexOf("/"));
                 // Don't show notification if chat activity is open.
                 if (!FirebaseChatMainApp.isChatActivityOpen()) {
-//                    sendGroupNotification(message,sender);
+                    sendGroupNotification(message,sender, groupname, groupid);
                 } else {
                     EventBus.getDefault().post(new GroupPushNotificationEvent(groupid,sender));
                 }
@@ -79,6 +81,33 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
 
+    private void sendGroupNotification(String message,
+                                  String sender, String groupName, String groupId) {
+        Intent intent = new Intent(this, GroupChatActivity.class);
+        intent.putExtra(Constants.ARG_SENDER, sender);
+        intent.putExtra(Constants.ARG_MESSAGE, message);
+        intent.putExtra(Constants.ARG_GROUPNAME, groupName);
+        intent.putExtra(Constants.ARG_GROUPID, groupId);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent,
+                PendingIntent.FLAG_ONE_SHOT);
+
+        Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
+                .setSmallIcon(R.drawable.ic_notif)
+                .setContentTitle(groupName)
+                .setContentText(message)
+                .setAutoCancel(true)
+                .setSound(defaultSoundUri)
+                .setContentIntent(pendingIntent);
+
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        notificationManager.notify(0, notificationBuilder.build());
+    }
+
+
     /**
      * Create and show a simple notification containing the received FCM message.
      */
@@ -97,7 +126,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
-                .setSmallIcon(R.drawable.ic_messaging)
+                .setSmallIcon(R.drawable.ic_notif)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setAutoCancel(true)

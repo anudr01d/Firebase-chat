@@ -22,4 +22,7 @@ public class Constants {
     public static final String ARG_SENDER = "SENDER";
     public static final String ARG_GROUPID = "groupid";
     public static final String ARG_GROUPNAME = "groupname";
+    public static final String ARG_MESSAGE = "message";
+    public static final String ARG_EMAILVERIFIED = "emailverified";
+    public static final String ARG_URL = "imguri";
 }

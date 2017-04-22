@@ -13,11 +13,13 @@ public interface UnsendContract {
     }
 
     interface Presenter {
-        void deleteMessage(String roomType, long timestamp);
+        void deleteMessage(String roomType, String roomType2,  long timestamp);
+        void deleteGroupMessage(String roomType, long timestamp);
     }
 
     interface Interactor {
-        void deleteMessageFromFirebase(String roomType, long timestamp);
+        void deleteMessageFromFirebase(String roomType, String roomType2, long timestamp);
+        void deleteGroupMessageFromFirebase(String roomType, long timestamp);
     }
 
     interface OnDeleteMessageListener {

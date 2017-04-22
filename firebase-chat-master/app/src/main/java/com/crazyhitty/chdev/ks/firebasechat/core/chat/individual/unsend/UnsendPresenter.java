@@ -10,8 +10,13 @@ public class UnsendPresenter implements UnsendContract.Presenter, UnsendContract
     }
 
     @Override
-    public void deleteMessage(String roomType, long timestamp) {
-        mDeleteGroupInteractor.deleteMessageFromFirebase(roomType,timestamp);
+    public void deleteMessage(String roomType, String roomType2, long timestamp) {
+        mDeleteGroupInteractor.deleteMessageFromFirebase(roomType, roomType2,timestamp);
+    }
+
+    @Override
+    public void deleteGroupMessage(String roomType, long timestamp){
+        mDeleteGroupInteractor.deleteGroupMessageFromFirebase(roomType, timestamp);
     }
 
     @Override

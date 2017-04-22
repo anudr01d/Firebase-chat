@@ -14,14 +14,18 @@ public class GroupChat {
     public String groupid;
     public String message;
     public long timestamp;
+    public String groupName;
+    public String imageurl;
 
     public GroupChat() {
     }
 
-    public GroupChat(String groupid, String sender, String message, long timestamp) {
+    public GroupChat(String groupid, String sender, String message, long timestamp, String groupName, String imageurl) {
         this.sender = sender;
         this.groupid = groupid;
         this.message = message;
         this.timestamp = timestamp;
+        this.groupName = groupName;
+        this.imageurl = imageurl;
     }
 }

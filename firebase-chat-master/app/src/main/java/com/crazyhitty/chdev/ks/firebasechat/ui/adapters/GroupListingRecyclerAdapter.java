@@ -60,6 +60,10 @@ public class GroupListingRecyclerAdapter extends RecyclerView.Adapter<GroupListi
         return mGroups.get(position);
     }
 
+    public List<Group> getGroups(){
+        return mGroups;
+    }
+
     static class ViewHolder extends RecyclerView.ViewHolder {
         private TextView txtUserAlphabet, txtUsername;
 

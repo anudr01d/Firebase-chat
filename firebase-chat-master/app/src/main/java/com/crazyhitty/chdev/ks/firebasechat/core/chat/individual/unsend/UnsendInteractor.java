@@ -18,9 +18,46 @@ public class UnsendInteractor implements UnsendContract.Interactor {
     }
 
     @Override
-    public void deleteMessageFromFirebase(String roomType, long timestamp) {
+    public void deleteMessageFromFirebase(String roomType, final String roomType2, final long timestamp) {
         FirebaseDatabase.getInstance().getReference()
                 .child(Constants.ARG_CHAT_ROOMS)
+                .child(roomType)
+                .child(String.valueOf(timestamp))
+                .removeValue()
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if(task.isSuccessful()){
+                            deleteSecondRoom(roomType2, timestamp);
+                        } else {
+                        }
+                    }
+                });
+    }
+
+
+    public void deleteSecondRoom(String roomType2, long timestamp){
+        FirebaseDatabase.getInstance().getReference()
+                .child(Constants.ARG_CHAT_ROOMS)
+                .child(roomType2)
+                .child(String.valueOf(timestamp))
+                .removeValue()
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if(task.isSuccessful()){
+                            mOnDeleteMessageListener.onDeleteMessageSuccess("Deletion successful");
+                        } else {
+                            mOnDeleteMessageListener.onDeleteMessageFailure("Deletion failure");
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public void deleteGroupMessageFromFirebase(String roomType, long timestamp) {
+        FirebaseDatabase.getInstance().getReference()
+                .child(Constants.ARG_GROUP_CHAT_ROOMS)
                 .child(roomType)
                 .child(String.valueOf(timestamp))
                 .removeValue()

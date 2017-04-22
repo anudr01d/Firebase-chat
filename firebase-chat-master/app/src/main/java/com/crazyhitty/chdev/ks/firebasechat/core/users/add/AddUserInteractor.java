@@ -1,6 +1,7 @@
 package com.crazyhitty.chdev.ks.firebasechat.core.users.add;
 
 import android.content.Context;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 
 import com.crazyhitty.chdev.ks.firebasechat.R;
@@ -27,7 +28,7 @@ public class AddUserInteractor implements AddUserContract.Interactor {
         DatabaseReference database = FirebaseDatabase.getInstance().getReference();
         User user = new User(firebaseUser.getUid(),
                 firebaseUser.getEmail(),
-                new SharedPrefUtil(context).getString(Constants.ARG_FIREBASE_TOKEN), username);
+                new SharedPrefUtil(context).getString(Constants.ARG_FIREBASE_TOKEN), username, false, "");
         database.child(Constants.ARG_USERS)
                 .child(firebaseUser.getUid())
                 .setValue(user)

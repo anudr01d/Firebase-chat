@@ -7,8 +7,8 @@ android {
         applicationId "com.anudroid.firebasechat"
         minSdkVersion 17
         targetSdkVersion 25
-        versionCode 3
-        versionName "1.3"
+        versionCode 6
+        versionName "1.6"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -25,10 +25,8 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
 
-    // firebase related dependencies
-    
-
-    // okhttp
+    compile 'com.github.bumptech.glide:glide:3.7.0'
+    compile 'com.android.support:support-v4:24.2.1'
     
     // event bus
     compile 'com.android.support:appcompat-v7:24.2.1'
@@ -36,6 +34,7 @@ dependencies {
     compile 'com.google.firebase:firebase-database:9.6.1'
     compile 'com.google.firebase:firebase-messaging:9.6.1'
     compile 'com.google.firebase:firebase-auth:9.6.1'
+    compile 'com.google.firebase:firebase-storage:9.6.1'
     compile 'com.squareup.okhttp3:okhttp:3.4.1'
     compile 'org.greenrobot:eventbus:3.0.0'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'

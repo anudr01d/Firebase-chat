@@ -26,6 +26,7 @@ import com.crazyhitty.chdev.ks.firebasechat.ui.activities.ChatActivity;
 import com.crazyhitty.chdev.ks.firebasechat.ui.activities.GroupChatActivity;
 import com.crazyhitty.chdev.ks.firebasechat.ui.adapters.GroupListingRecyclerAdapter;
 import com.crazyhitty.chdev.ks.firebasechat.ui.adapters.UserListingRecyclerAdapter;
+import com.crazyhitty.chdev.ks.firebasechat.utils.Constants;
 import com.crazyhitty.chdev.ks.firebasechat.utils.ItemClickSupport;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -178,6 +179,28 @@ public class GroupsFragment extends Fragment implements GetGroupsContract.View, 
         mGroupListingRecyclerAdapter = new GroupListingRecyclerAdapter(grps);
         mRecyclerViewAllGroupListing.setAdapter(mGroupListingRecyclerAdapter);
         mGroupListingRecyclerAdapter.notifyDataSetChanged();
+        //subscribeToAllGroups(grps);
+    }
+
+    private void subscribeToAllGroups(List<Group> groups){
+        for(Group grp : groups) {
+            if(grp!=null) {
+                FirebaseMessaging.getInstance().subscribeToTopic(grp.getGroupID());
+            }
+        }
+    }
+    private void unSubscribeAllGroups(List<Group> groups){
+        for(Group grp : groups) {
+            if(grp!=null) {
+                FirebaseMessaging.getInstance().unsubscribeFromTopic(grp.getGroupID());
+            }
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        //unSubscribeAllGroups(mGroupListingRecyclerAdapter.getGroups());
     }
 
     @Override

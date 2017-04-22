@@ -35,6 +35,7 @@ public class LoginInteractor implements LoginContract.Interactor {
                                 mOnLoginListener.onSuccess(task.getResult().toString());
                                 updateFirebaseToken(task.getResult().getUser().getUid(),
                                         new SharedPrefUtil(activity.getApplicationContext()).getString(Constants.ARG_FIREBASE_TOKEN, null));
+                                updateEmailVerified(task.getResult().getUser().getUid());
                             } else {
                                 FirebaseAuth.getInstance().signOut();
                                 mOnLoginListener.onFailure("Email verification is not complete.");
@@ -53,5 +54,14 @@ public class LoginInteractor implements LoginContract.Interactor {
                 .child(uid)
                 .child(Constants.ARG_FIREBASE_TOKEN)
                 .setValue(token);
+    }
+
+    private void updateEmailVerified(String uid) {
+        FirebaseDatabase.getInstance()
+                .getReference()
+                .child(Constants.ARG_USERS)
+                .child(uid)
+                .child(Constants.ARG_EMAILVERIFIED)
+                .setValue(true);
     }
 }

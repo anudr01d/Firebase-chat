@@ -21,6 +21,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,6 +32,8 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestManager;
 import com.crazyhitty.chdev.ks.firebasechat.FirebaseChatMainApp;
 import com.crazyhitty.chdev.ks.firebasechat.R;
 import com.crazyhitty.chdev.ks.firebasechat.models.Chat;
@@ -56,11 +59,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Author: Kartik Sharma
- * Created on: 10/16/2016 , 10:36 AM
- * Project: FirebaseChat
- */
 
 public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final int VIEW_TYPE_ME = 1;
@@ -68,16 +66,25 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     private List<Chat> mChats;
     private Activity mActivity;
+    private RequestManager mRequestManager;
 
-    public ChatRecyclerAdapter(List<Chat> chats, Activity activity) {
+    public ChatRecyclerAdapter(List<Chat> chats, Activity activity, RequestManager requestManager) {
         mChats = chats;
         mActivity = activity;
+        mRequestManager= requestManager;
     }
 
     public void add(Chat chat) {
         mChats.add(chat);
         notifyItemInserted(mChats.size() - 1);
     }
+
+    public void remove(int position) {
+        mChats.remove(position);
+        notifyItemRemoved(position);
+        notifyItemRangeChanged(position, mChats.size());
+    }
+
 
     public void clear() {
         int size = this.mChats.size();
@@ -121,10 +128,19 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
         String alphabet = chat.sender.substring(0, 1);
 
-        myChatViewHolder.txtChatMessage.setText(chat.message);
-        myChatViewHolder.txtUserAlphabet.setText(alphabet);
-        myChatViewHolder.txtSentAt.setText("Sent at " + convertTime(chat.timestamp));
-        linkifyMessage(myChatViewHolder.txtChatMessage);
+        if(chat.imageurl.equals("")) {
+            myChatViewHolder.txtChatMessage.setText(chat.message);
+            myChatViewHolder.txtChatMessage.setVisibility(View.VISIBLE);
+            myChatViewHolder.imgchat.setVisibility(View.GONE);
+        } else {
+            //Glide.with(mActivity).load(Uri.parse(chat.imageurl)).into(myChatViewHolder.imgchat);
+            mRequestManager.load(Uri.parse(chat.imageurl)).into(myChatViewHolder.imgchat);
+            myChatViewHolder.txtChatMessage.setVisibility(View.GONE);
+            myChatViewHolder.imgchat.setVisibility(View.VISIBLE);
+        }
+            myChatViewHolder.txtUserAlphabet.setText(alphabet);
+            myChatViewHolder.txtSentAt.setText("Sent at " + convertTime(chat.timestamp));
+            linkifyMessage(myChatViewHolder.txtChatMessage);
     }
 
     private void linkifyMessage(TextView txtChat) {
@@ -220,7 +236,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         List<Meaning> mean;
         Dictionary dict = gson.fromJson(json, Dictionary.class);
         List<Tuc> tuc = dict.getTuc();
-        if(tuc!=null) {
+        if(tuc!=null && tuc.size()!=0) {
             if (tuc.get(0).getMeanings() != null) {
                 mean = tuc.get(0).getMeanings();
             } else if (tuc.get(1).getMeanings() != null) {
@@ -261,7 +277,16 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
         String alphabet = chat.sender.substring(0, 1);
 
-        otherChatViewHolder.txtChatMessage.setText(chat.message);
+        if(chat.imageurl.equals("")) {
+            otherChatViewHolder.txtChatMessage.setText(chat.message);
+            otherChatViewHolder.txtChatMessage.setVisibility(View.VISIBLE);
+            otherChatViewHolder.imgchat.setVisibility(View.GONE);
+        } else {
+            otherChatViewHolder.txtChatMessage.setVisibility(View.GONE);
+            //Glide.with(mActivity).load(Uri.parse(chat.imageurl)).into(otherChatViewHolder.imgchat);
+            mRequestManager.load(Uri.parse(chat.imageurl)).into(otherChatViewHolder.imgchat);
+            otherChatViewHolder.imgchat.setVisibility(View.VISIBLE);
+        }
         otherChatViewHolder.txtUserAlphabet.setText(alphabet);
         otherChatViewHolder.txtSentAt.setText("Sent at " + convertTime(chat.timestamp));
         linkifyMessage(otherChatViewHolder.txtChatMessage);
@@ -293,23 +318,27 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     private static class MyChatViewHolder extends RecyclerView.ViewHolder {
         private TextView txtChatMessage, txtUserAlphabet, txtSentAt;
+        private ImageView imgchat;
 
         public MyChatViewHolder(View itemView) {
             super(itemView);
             txtChatMessage = (TextView) itemView.findViewById(R.id.text_view_chat_message);
             txtUserAlphabet = (TextView) itemView.findViewById(R.id.text_view_user_alphabet);
             txtSentAt = (TextView) itemView.findViewById(R.id.txtSentAt);
+            imgchat = (ImageView) itemView.findViewById(R.id.imgchat);
         }
     }
 
     private static class OtherChatViewHolder extends RecyclerView.ViewHolder {
         private TextView txtChatMessage, txtUserAlphabet, txtSentAt;
+        private ImageView imgchat;
 
         public OtherChatViewHolder(View itemView) {
             super(itemView);
             txtChatMessage = (TextView) itemView.findViewById(R.id.text_view_chat_message);
             txtUserAlphabet = (TextView) itemView.findViewById(R.id.text_view_user_alphabet);
             txtSentAt = (TextView) itemView.findViewById(R.id.txtSentAt);
+            imgchat = (ImageView) itemView.findViewById(R.id.imgchat);
         }
     }
 }

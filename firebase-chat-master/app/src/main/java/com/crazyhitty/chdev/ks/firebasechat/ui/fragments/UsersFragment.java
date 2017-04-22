@@ -12,15 +12,23 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.crazyhitty.chdev.ks.firebasechat.R;
+import com.crazyhitty.chdev.ks.firebasechat.core.chat.group.getall.GetGroupsContract;
+import com.crazyhitty.chdev.ks.firebasechat.core.chat.group.getall.GetGroupsPresenter;
 import com.crazyhitty.chdev.ks.firebasechat.core.users.get.all.GetUsersContract;
 import com.crazyhitty.chdev.ks.firebasechat.core.users.get.all.GetUsersPresenter;
+import com.crazyhitty.chdev.ks.firebasechat.models.Group;
 import com.crazyhitty.chdev.ks.firebasechat.models.User;
 import com.crazyhitty.chdev.ks.firebasechat.ui.activities.ChatActivity;
+import com.crazyhitty.chdev.ks.firebasechat.ui.adapters.GroupListingRecyclerAdapter;
 import com.crazyhitty.chdev.ks.firebasechat.ui.adapters.UserListingRecyclerAdapter;
 import com.crazyhitty.chdev.ks.firebasechat.utils.ItemClickSupport;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Author: Kartik Sharma
@@ -28,11 +36,12 @@ import java.util.List;
  * Project: FirebaseChat
  */
 
-public class UsersFragment extends Fragment implements GetUsersContract.View, ItemClickSupport.OnItemClickListener, SwipeRefreshLayout.OnRefreshListener {
+public class UsersFragment extends Fragment implements GetUsersContract.View, ItemClickSupport.OnItemClickListener, SwipeRefreshLayout.OnRefreshListener, GetGroupsContract.View {
     public static final String ARG_TYPE = "type";
     public static final String TYPE_CHATS = "type_chats";
     public static final String TYPE_ALL = "type_all";
     private boolean getAll = false;
+    private List<Group> grps;
 
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RecyclerView mRecyclerViewAllUserListing;
@@ -40,6 +49,7 @@ public class UsersFragment extends Fragment implements GetUsersContract.View, It
     private UserListingRecyclerAdapter mUserListingRecyclerAdapter;
 
     private GetUsersPresenter mGetUsersPresenter;
+    private GetGroupsPresenter mGetGroupsPresenter;
 
     public static UsersFragment newInstance(String type) {
         Bundle args = new Bundle();
@@ -70,7 +80,9 @@ public class UsersFragment extends Fragment implements GetUsersContract.View, It
 
     private void init() {
         mGetUsersPresenter = new GetUsersPresenter(this);
+        mGetGroupsPresenter = new GetGroupsPresenter(this);
         getUsers();
+        mGetGroupsPresenter.getAllGroups();
         mSwipeRefreshLayout.post(new Runnable() {
             @Override
             public void run() {
@@ -108,15 +120,26 @@ public class UsersFragment extends Fragment implements GetUsersContract.View, It
 
     @Override
     public void onGetAllUsersSuccess(List<User> users) {
+        List<User> verifiedUsers = filterVerifiedUsers(users);
         mSwipeRefreshLayout.post(new Runnable() {
             @Override
             public void run() {
                 mSwipeRefreshLayout.setRefreshing(false);
             }
         });
-        mUserListingRecyclerAdapter = new UserListingRecyclerAdapter(users);
+        mUserListingRecyclerAdapter = new UserListingRecyclerAdapter(verifiedUsers, getActivity());
         mRecyclerViewAllUserListing.setAdapter(mUserListingRecyclerAdapter);
         mUserListingRecyclerAdapter.notifyDataSetChanged();
+    }
+
+    private List<User> filterVerifiedUsers(List<User> users) {
+        List<User> tempusers = new ArrayList<>();
+        for(User usr : users){
+            if(usr.emailverified){
+                tempusers.add(usr);
+            }
+        }
+        return tempusers;
     }
 
     @Override
@@ -143,4 +166,61 @@ public class UsersFragment extends Fragment implements GetUsersContract.View, It
     public void onGetChatUsersFailure(String message) {
 
     }
+
+
+    @Override
+    public void onGetAllGroupsSuccess(List<Group> users) {
+        //filter groups based on the current user's presence
+        grps = new ArrayList<>();
+        for(Group g : users) {
+            Iterator it = g.getUserList().entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry pair = (Map.Entry)it.next();
+                User usr = (User)pair.getValue();
+                if(FirebaseAuth.getInstance().getCurrentUser().getEmail().equalsIgnoreCase(usr.email.toString())) {
+                    grps.add(g);
+                }
+                //it.remove(); // avoids a ConcurrentModificationException
+            }
+        }
+        subscribeToAllGroups(grps);
+    }
+
+    private void subscribeToAllGroups(List<Group> groups){
+        for(Group grp : groups) {
+            if(grp!=null) {
+                FirebaseMessaging.getInstance().subscribeToTopic(grp.getGroupID());
+            }
+        }
+    }
+    private void unSubscribeAllGroups(List<Group> groups){
+        for(Group grp : groups) {
+            if(grp!=null) {
+                FirebaseMessaging.getInstance().unsubscribeFromTopic(grp.getGroupID());
+            }
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+//        if(grps!=null) {
+//            unSubscribeAllGroups(grps);
+//        }
+    }
+
+    @Override
+    public void onGetAllGroupsFailure(String message) {
+    }
+
+    @Override
+    public void onGetChatGroupsSuccess(List<Group> users) {
+
+    }
+
+    @Override
+    public void onGetChatGroupsFailure(String message) {
+
+    }
+
 }

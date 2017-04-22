@@ -1,10 +1,13 @@
 package com.crazyhitty.chdev.ks.firebasechat.ui.fragments;
 
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -15,6 +18,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -22,6 +26,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestManager;
 import com.crazyhitty.chdev.ks.firebasechat.R;
 import com.crazyhitty.chdev.ks.firebasechat.core.chat.individual.ChatContract;
 import com.crazyhitty.chdev.ks.firebasechat.core.chat.individual.ChatPresenter;
@@ -34,12 +40,18 @@ import com.crazyhitty.chdev.ks.firebasechat.ui.activities.GroupChatActivity;
 import com.crazyhitty.chdev.ks.firebasechat.ui.adapters.ChatRecyclerAdapter;
 import com.crazyhitty.chdev.ks.firebasechat.utils.Constants;
 import com.crazyhitty.chdev.ks.firebasechat.utils.ItemClickSupport;
+import com.crazyhitty.chdev.ks.firebasechat.utils.Utility;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -47,6 +59,7 @@ import java.util.Map;
 
 
 public class ChatFragment extends Fragment implements ChatContract.View, TextView.OnEditorActionListener, ItemClickSupport.OnItemLongClickListener,ItemClickSupport.OnItemClickListener, UnsendContract.View {
+    RequestManager mRequestManager;
     private static final int REQUEST_IMAGE_CAPTURE = 111;
     private RecyclerView mRecyclerViewChat;
     private EditText mETxtMessage;
@@ -102,6 +115,7 @@ public class ChatFragment extends Fragment implements ChatContract.View, TextVie
     }
 
     private void init() {
+        mRequestManager= Glide.with(this);
         mProgressDialog = new ProgressDialog(getActivity());
         mProgressDialog.setTitle(getString(R.string.loading));
         mProgressDialog.setMessage(getString(R.string.please_wait));
@@ -113,7 +127,105 @@ public class ChatFragment extends Fragment implements ChatContract.View, TextVie
         mUnsendPresenter= new UnsendPresenter(this);
         mChatPresenter.getMessage(FirebaseAuth.getInstance().getCurrentUser().getUid(),
                 getArguments().getString(Constants.ARG_RECEIVER_UID));
+
+        mETxtMessage.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_UP) {
+                    if(event.getRawX() <= mETxtMessage.getCompoundDrawables()[0].getBounds().width()+30)
+                    {
+                        selectImage();
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+
     }
+
+
+    private void selectImage() {
+        final CharSequence[] items = { "Take Photo", "Choose from Library",
+                "Cancel" };
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setTitle("Add Photo!");
+        builder.setItems(items, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int item) {
+                boolean result= Utility.checkPermission(getActivity());
+                if (items[item].equals("Take Photo")) {
+                    if(result)
+                        cameraIntent();
+                } else if (items[item].equals("Choose from Library")) {
+                    if(result)
+                        galleryIntent();
+                } else if (items[item].equals("Cancel")) {
+                    dialog.dismiss();
+                }
+            }
+        });
+        builder.show();
+    }
+
+    private void cameraIntent()
+    {
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        startActivityForResult(intent, 0);
+    }
+    private void galleryIntent()
+    {
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);//
+        startActivityForResult(Intent.createChooser(intent, "Select File"),1);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == Activity.RESULT_OK) {
+            if (requestCode == 1)
+                onSelectFromGalleryResult(data);
+            else if (requestCode == 0)
+                onCaptureImageResult(data);
+        }
+    }
+    @SuppressWarnings("deprecation")
+    private void onSelectFromGalleryResult(Intent data) {
+        Bitmap bm=null;
+        if (data != null) {
+            try {
+                bm = MediaStore.Images.Media.getBitmap(getActivity().getApplicationContext().getContentResolver(), data.getData());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        //mImgProfile.setImageBitmap(bm);
+        uploadImage(bm);
+    }
+
+    private void onCaptureImageResult(Intent data) {
+        Bitmap thumbnail = (Bitmap) data.getExtras().get("data");
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        thumbnail.compress(Bitmap.CompressFormat.JPEG, 90, bytes);
+        File destination = new File(Environment.getExternalStorageDirectory(),
+                System.currentTimeMillis() + ".jpg");
+        FileOutputStream fo;
+        try {
+            destination.createNewFile();
+            fo = new FileOutputStream(destination);
+            fo.write(bytes.toByteArray());
+            fo.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //mImgProfile.setImageBitmap(thumbnail);
+        uploadImage(thumbnail);
+    }
+
 
     @Override
     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -137,7 +249,7 @@ public class ChatFragment extends Fragment implements ChatContract.View, TextVie
                     senderUid,
                     receiverUid,
                     message,
-                    System.currentTimeMillis());
+                    System.currentTimeMillis(),"");
             mChatPresenter.sendMessage(getActivity().getApplicationContext(),
                     chat,
                     receiverFirebaseToken);
@@ -145,6 +257,29 @@ public class ChatFragment extends Fragment implements ChatContract.View, TextVie
             Toast.makeText(getActivity(), "Please write a valid message.", Toast.LENGTH_SHORT).show();
         }
     }
+
+    private void sendImageMessage(Uri uri) {
+            String receiver = getArguments().getString(Constants.ARG_RECEIVER);
+            String receiverUid = getArguments().getString(Constants.ARG_RECEIVER_UID);
+            String sender = FirebaseAuth.getInstance().getCurrentUser().getEmail();
+            String senderUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            String receiverFirebaseToken = getArguments().getString(Constants.ARG_FIREBASE_TOKEN);
+            Chat chat = new Chat(sender,
+                    receiver,
+                    senderUid,
+                    receiverUid,
+                    "",
+                    System.currentTimeMillis(),
+                    uri.toString());
+            mChatPresenter.sendMessage(getActivity().getApplicationContext(),
+                    chat,
+                    receiverFirebaseToken);
+    }
+
+    private void uploadImage(Bitmap bm){
+        mChatPresenter.uploadImage(bm);
+    }
+
 
     @Override
     public void onSendMessageSuccess() {
@@ -160,7 +295,7 @@ public class ChatFragment extends Fragment implements ChatContract.View, TextVie
     @Override
     public void onGetMessagesSuccess(Chat chat) {
         if (mChatRecyclerAdapter == null) {
-            mChatRecyclerAdapter = new ChatRecyclerAdapter(new ArrayList<Chat>(), getActivity());
+            mChatRecyclerAdapter = new ChatRecyclerAdapter(new ArrayList<Chat>(), getActivity(), mRequestManager);
             mRecyclerViewChat.setAdapter(mChatRecyclerAdapter);
             ItemClickSupport.addTo(mRecyclerViewChat)
                     .setOnItemClickListener(this)
@@ -183,14 +318,15 @@ public class ChatFragment extends Fragment implements ChatContract.View, TextVie
                 long start = System.currentTimeMillis();
                 if (start - mChatRecyclerAdapter.getChat(position).timestamp <= 60000) {
                     String roomtype = mChatRecyclerAdapter.getChat(position).senderUid + "_" + mChatRecyclerAdapter.getChat(position).receiverUid;
-                    unsendMessageDialog(roomtype, mChatRecyclerAdapter.getChat(position).timestamp);
+                    String roomType2 = mChatRecyclerAdapter.getChat(position).receiverUid + "_" + mChatRecyclerAdapter.getChat(position).senderUid;
+                    unsendMessageDialog(roomtype, roomType2, mChatRecyclerAdapter.getChat(position).timestamp);
                 }
             }
         }
         return true;
     }
 
-    private void unsendMessageDialog(final String roomType, final long timestamp) {
+    private void unsendMessageDialog(final String roomType, final String roomType2, final long timestamp) {
         new AlertDialog.Builder(getActivity())
                 .setTitle(R.string.unsend)
                 .setMessage(R.string.are_you_sure)
@@ -198,7 +334,7 @@ public class ChatFragment extends Fragment implements ChatContract.View, TextVie
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
-                        mUnsendPresenter.deleteMessage(roomType,timestamp);
+                        mUnsendPresenter.deleteMessage(roomType,roomType2,timestamp);
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
@@ -220,51 +356,25 @@ public class ChatFragment extends Fragment implements ChatContract.View, TextVie
     }
 
     @Override
+    public void onUploadImageSuccess(Uri uri) {
+        sendImageMessage(uri);
+    }
+
+    @Override
+    public void onUploadImageFailure(String message) {
+        Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
     public void onDeleteMessageSuccess(String message) {
         try {
             Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
-            mChatRecyclerAdapter.clear();
-            //mRecyclerViewChat.getRecycledViewPool().clear();
+            mChatRecyclerAdapter.remove(mChatRecyclerAdapter.getItemCount()-1);
             mChatRecyclerAdapter.notifyDataSetChanged();
-            mChatPresenter.getMessage(FirebaseAuth.getInstance().getCurrentUser().getUid(),
-                    getArguments().getString(Constants.ARG_RECEIVER_UID));
         }catch (Exception e){
             e.printStackTrace();
         }
     }
-
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.menu_chat, menu);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_sendimage:
-//                onLaunchCamera();
-                break;
-        }
-        return false;
-    }
-
-//    public void onLaunchCamera() {
-//        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-//        if (takePictureIntent.resolveActivity(getActivity().getPackageManager()) != null) {
-//            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
-//        }
-//    }
-//
-//    @Override
-//    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == getActivity().RESULT_OK) {
-//            Bundle extras = data.getExtras();
-//            Bitmap imageBitmap = (Bitmap) extras.get("data");
-//            mImageLabel.setImageBitmap(imageBitmap);
-//            encodeBitmapAndSaveToFirebase(imageBitmap);
-//        }
-//    }
 
 
     @Override

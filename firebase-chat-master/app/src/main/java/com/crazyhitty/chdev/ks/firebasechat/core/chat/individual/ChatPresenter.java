@@ -1,6 +1,8 @@
 package com.crazyhitty.chdev.ks.firebasechat.core.chat.individual;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.net.Uri;
 
 import com.crazyhitty.chdev.ks.firebasechat.models.Chat;
 
@@ -11,13 +13,18 @@ import com.crazyhitty.chdev.ks.firebasechat.models.Chat;
  */
 
 public class ChatPresenter implements ChatContract.Presenter, ChatContract.OnSendMessageListener,
-        ChatContract.OnGetMessagesListener {
+        ChatContract.OnGetMessagesListener, ChatContract.OnUploadImageSuccess {
     private ChatContract.View mView;
     private ChatInteractor mChatInteractor;
 
     public ChatPresenter(ChatContract.View view) {
         this.mView = view;
-        mChatInteractor = new ChatInteractor(this, this);
+        mChatInteractor = new ChatInteractor(this, this, this);
+    }
+
+    @Override
+    public void uploadImage(Bitmap bmp) {
+        mChatInteractor.uploadImageToFirebase(bmp);
     }
 
     @Override
@@ -48,5 +55,15 @@ public class ChatPresenter implements ChatContract.Presenter, ChatContract.OnSen
     @Override
     public void onGetMessagesFailure(String message) {
         mView.onGetMessagesFailure(message);
+    }
+
+    @Override
+    public void onSendImageSuccess(Uri uri) {
+        mView.onUploadImageSuccess(uri);
+    }
+
+    @Override
+    public void onSendImageFailure(String message) {
+        mView.onUploadImageFailure(message);
     }
 }

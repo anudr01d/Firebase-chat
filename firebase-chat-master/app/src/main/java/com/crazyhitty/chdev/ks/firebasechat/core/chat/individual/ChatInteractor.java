@@ -1,18 +1,30 @@
 package com.crazyhitty.chdev.ks.firebasechat.core.chat.individual;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.crazyhitty.chdev.ks.firebasechat.fcm.FcmNotificationBuilder;
 import com.crazyhitty.chdev.ks.firebasechat.models.Chat;
 import com.crazyhitty.chdev.ks.firebasechat.utils.Constants;
 import com.crazyhitty.chdev.ks.firebasechat.utils.SharedPrefUtil;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+
+import java.io.ByteArrayOutputStream;
+import java.sql.Date;
 
 /**
  * Author: Kartik Sharma
@@ -26,6 +38,8 @@ public class ChatInteractor implements ChatContract.Interactor {
     private ChatContract.OnSendMessageListener mOnSendMessageListener;
     private ChatContract.OnGetMessagesListener mOnGetMessagesListener;
 
+    private ChatContract.OnUploadImageSuccess mOnImageUploadListener;
+
     public ChatInteractor(ChatContract.OnSendMessageListener onSendMessageListener) {
         this.mOnSendMessageListener = onSendMessageListener;
     }
@@ -35,9 +49,40 @@ public class ChatInteractor implements ChatContract.Interactor {
     }
 
     public ChatInteractor(ChatContract.OnSendMessageListener onSendMessageListener,
-                          ChatContract.OnGetMessagesListener onGetMessagesListener) {
+                          ChatContract.OnGetMessagesListener onGetMessagesListener, ChatContract.OnUploadImageSuccess mOnImageUploadListener) {
         this.mOnSendMessageListener = onSendMessageListener;
         this.mOnGetMessagesListener = onGetMessagesListener;
+        this.mOnImageUploadListener = mOnImageUploadListener;
+    }
+
+    @Override
+    public void uploadImageToFirebase(Bitmap bmp) {
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        // Create a storage reference from our app
+        StorageReference storageRef = storage.getReference();
+        StorageReference profileImageRef = storageRef.child("images/"+ System.currentTimeMillis() +".png");
+        // Get the data from an ImageView as bytes
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bmp.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        byte[] data = baos.toByteArray();
+
+        UploadTask uploadTask = profileImageRef.putBytes(data);
+        uploadTask.addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+                // Handle unsuccessful uploads
+                mOnImageUploadListener.onSendImageFailure("Profile could not be updated");
+            }
+        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, and download URL.
+                Uri downloadUrl = taskSnapshot.getDownloadUrl();
+                mOnImageUploadListener.onSendImageSuccess(downloadUrl);
+                //updateUserProfile(downloadUrl);
+            }
+        });
     }
 
     @Override

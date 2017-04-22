@@ -3,6 +3,7 @@ package com.crazyhitty.chdev.ks.firebasechat.ui.adapters;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.graphics.Color;
+import android.net.Uri;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.view.ContextThemeWrapper;
 import android.support.v7.widget.RecyclerView;
@@ -15,12 +16,14 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.bumptech.glide.RequestManager;
 import com.crazyhitty.chdev.ks.firebasechat.FirebaseChatMainApp;
 import com.crazyhitty.chdev.ks.firebasechat.R;
 import com.crazyhitty.chdev.ks.firebasechat.models.Chat;
@@ -47,16 +50,31 @@ public class GroupChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.
 
     private List<GroupChat> mChats;
     private Activity mActivity;
+    private RequestManager mRequestManager;
 
-    public GroupChatRecyclerAdapter(List<GroupChat> chats, Activity activity) {
+    public GroupChatRecyclerAdapter(List<GroupChat> chats, Activity activity, RequestManager requestManager) {
         mChats = chats;
         mActivity = activity;
+        mRequestManager= requestManager;
     }
 
     public void add(GroupChat chat) {
         mChats.add(chat);
         notifyItemInserted(mChats.size() - 1);
     }
+
+    public void remove(int position) {
+        mChats.remove(position);
+        notifyItemRemoved(position);
+        notifyItemRangeChanged(position, mChats.size());
+    }
+
+
+    public void clear() {
+        int size = this.mChats.size();
+        this.mChats.clear();
+    }
+
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -78,29 +96,53 @@ public class GroupChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
         if (TextUtils.equals(mChats.get(position).sender,
-                FirebaseAuth.getInstance().getCurrentUser().getUid())) {
+                FirebaseAuth.getInstance().getCurrentUser().getDisplayName())) {
             configureMyChatViewHolder((MyChatViewHolder) holder, position);
         } else {
             configureOtherChatViewHolder((OtherChatViewHolder) holder, position);
         }
     }
 
+    public GroupChat getChat(int position) {
+        return mChats.get(position);
+    }
+
     private void configureMyChatViewHolder(MyChatViewHolder myChatViewHolder, int position) {
         GroupChat chat = mChats.get(position);
 
         //String alphabet = chat.sender.substring(0, 1);
-        myChatViewHolder.txtChatMessage.setText(chat.message);
-        myChatViewHolder.txtUserAlphabet.setText("ME");
+
+        if(chat.imageurl.equals("")) {
+            myChatViewHolder.txtChatMessage.setText(chat.message);
+            myChatViewHolder.txtChatMessage.setVisibility(View.VISIBLE);
+            myChatViewHolder.imgchat.setVisibility(View.GONE);
+        } else {
+            //Glide.with(mActivity).load(Uri.parse(chat.imageurl)).into(myChatViewHolder.imgchat);
+            mRequestManager.load(Uri.parse(chat.imageurl)).into(myChatViewHolder.imgchat);
+            myChatViewHolder.txtChatMessage.setVisibility(View.GONE);
+            myChatViewHolder.imgchat.setVisibility(View.VISIBLE);
+        }
+        myChatViewHolder.txtUserAlphabet.setText("Me");
         myChatViewHolder.txtSentAt.setText("Sent at " + convertTime(chat.timestamp));
         linkifyMessage(myChatViewHolder.txtChatMessage);
+
     }
 
     private void configureOtherChatViewHolder(OtherChatViewHolder otherChatViewHolder, int position) {
         GroupChat chat = mChats.get(position);
 
-        String alphabet = chat.sender.substring(0, 1);
+        String alphabet = chat.sender.substring(0, 2);
 
-        otherChatViewHolder.txtChatMessage.setText(chat.message);
+        if(chat.imageurl.equals("")) {
+            otherChatViewHolder.txtChatMessage.setText(chat.message);
+            otherChatViewHolder.txtChatMessage.setVisibility(View.VISIBLE);
+            otherChatViewHolder.imgchat.setVisibility(View.GONE);
+        } else {
+            otherChatViewHolder.txtChatMessage.setVisibility(View.GONE);
+            mRequestManager.load(Uri.parse(chat.imageurl)).into(otherChatViewHolder.imgchat);
+            otherChatViewHolder.imgchat.setVisibility(View.VISIBLE);
+        }
+
         otherChatViewHolder.txtUserAlphabet.setText(alphabet);
         otherChatViewHolder.txtSentAt.setText("Sent at " + convertTime(chat.timestamp));
         linkifyMessage(otherChatViewHolder.txtChatMessage);
@@ -187,7 +229,7 @@ public class GroupChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.
         List<Meaning> mean;
         Dictionary dict = gson.fromJson(json, Dictionary.class);
         List<Tuc> tuc = dict.getTuc();
-        if(tuc!=null) {
+        if(tuc!=null && tuc.size()!=0) {
             if (tuc.get(0).getMeanings() != null) {
                 mean = tuc.get(0).getMeanings();
             } else if (tuc.get(1).getMeanings() != null) {
@@ -234,7 +276,7 @@ public class GroupChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.
     @Override
     public int getItemViewType(int position) {
         if (TextUtils.equals(mChats.get(position).sender,
-                FirebaseAuth.getInstance().getCurrentUser().getUid())) {
+                FirebaseAuth.getInstance().getCurrentUser().getDisplayName())) {
             return VIEW_TYPE_ME;
         } else {
             return VIEW_TYPE_OTHER;
@@ -243,23 +285,27 @@ public class GroupChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.
 
     private static class MyChatViewHolder extends RecyclerView.ViewHolder {
         private TextView txtChatMessage, txtUserAlphabet,txtSentAt;
+        private ImageView imgchat;
 
         public MyChatViewHolder(View itemView) {
             super(itemView);
             txtChatMessage = (TextView) itemView.findViewById(R.id.text_view_chat_message);
             txtUserAlphabet = (TextView) itemView.findViewById(R.id.text_view_user_alphabet);
             txtSentAt = (TextView) itemView.findViewById(R.id.txtSentAt);
+            imgchat = (ImageView) itemView.findViewById(R.id.imgchat);
         }
     }
 
     private static class OtherChatViewHolder extends RecyclerView.ViewHolder {
         private TextView txtChatMessage, txtUserAlphabet, txtSentAt;
+        private ImageView imgchat;
 
         public OtherChatViewHolder(View itemView) {
             super(itemView);
             txtChatMessage = (TextView) itemView.findViewById(R.id.text_view_chat_message);
             txtUserAlphabet = (TextView) itemView.findViewById(R.id.text_view_user_alphabet);
             txtSentAt = (TextView) itemView.findViewById(R.id.txtSentAt);
+            imgchat = (ImageView) itemView.findViewById(R.id.imgchat);
         }
     }
 }

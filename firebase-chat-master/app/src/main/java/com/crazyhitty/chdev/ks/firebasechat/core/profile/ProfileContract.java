@@ -1,6 +1,7 @@
 package com.crazyhitty.chdev.ks.firebasechat.core.profile;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
 
 import com.crazyhitty.chdev.ks.firebasechat.models.User;
 
@@ -19,11 +20,11 @@ public interface ProfileContract {
     }
 
     interface Presenter {
-        void saveProfile(Activity activity);
+        void saveProfile(Bitmap bmp);
     }
 
     interface Interactor {
-        void performFirebaseSaveProfile(Activity activity);
+        void performFirebaseSaveProfile(Bitmap bmp);
     }
 
     interface OnSaveProfileListener {

@@ -44,10 +44,12 @@ public class FcmGroupNotificationBuilder {
     private static final String KEY_DATA = "data";
     private static final String KEY_SENDER = "senderid";
     private static final String KEY_MESSAGE = "message";
+    private static final String KEY_GROUPNAME = "groupname";
 
     private String mTo;
     private String mSender;
     private String mMessage;
+    private String mGroupName;
 
     private FcmGroupNotificationBuilder() {
 
@@ -69,6 +71,11 @@ public class FcmGroupNotificationBuilder {
 
     public FcmGroupNotificationBuilder message(String message) {
         mMessage = message;
+        return this;
+    }
+
+    public FcmGroupNotificationBuilder groupname(String groupname) {
+        mGroupName = groupname;
         return this;
     }
 
@@ -141,6 +148,7 @@ public class FcmGroupNotificationBuilder {
 
         JSONObject jsonObjectData = new JSONObject();
         jsonObjectData.put(KEY_SENDER, mSender);
+        jsonObjectData.put(KEY_GROUPNAME, mGroupName);
         jsonObjectData.put(KEY_MESSAGE, mMessage);
         jsonObjectBody.put(KEY_DATA, jsonObjectData);
 

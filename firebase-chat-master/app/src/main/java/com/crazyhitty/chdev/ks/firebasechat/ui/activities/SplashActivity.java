@@ -22,15 +22,21 @@ public class SplashActivity extends AppCompatActivity {
         mRunnable = new Runnable() {
             @Override
             public void run() {
-                // check if user is already logged in or not
-                if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-                    // if logged in redirect the user to user listing activity
-                    UserListingActivity.startActivity(SplashActivity.this);
-                } else {
-                    // otherwise redirect the user to login activity
-                    LoginActivity.startIntent(SplashActivity.this);
-                }
-                finish();
+                    // check if user is already logged in or not
+                    if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                        //check if user has verified email
+                        if (FirebaseAuth.getInstance().getCurrentUser().isEmailVerified()) {
+                            // if logged in redirect the user to user listing activity
+                            UserListingActivity.startActivity(SplashActivity.this);
+                        } else {
+                            FirebaseAuth.getInstance().signOut();
+                            LoginActivity.startIntent(SplashActivity.this);
+                        }
+                    } else {
+                        // otherwise redirect the user to login activity
+                        LoginActivity.startIntent(SplashActivity.this);
+                    }
+                        finish();
             }
         };
 
